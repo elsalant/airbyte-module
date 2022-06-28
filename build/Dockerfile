@@ -19,7 +19,8 @@ RUN apt-get install -y docker.io curl
 EXPOSE 8080 8081
 
 ENTRYPOINT ["python3"]
-CMD ["main.py"]
+CMD ["main.py", "--loglevel", "trace" ]
+ENV PYTHONUNBUFFERED=1
 
 USER ${USER_UID}
 

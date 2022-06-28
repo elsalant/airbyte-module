@@ -19,7 +19,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '-c', '--config', type=str, default='/etc/conf/conf.yaml', help='Path to config file')
     parser.add_argument(
-        '-l', '--loglevel', type=str, default='warning', help='logging level', 
+        '-l', '--loglevel', type=str, default='info', help='logging level',
         choices=['trace', 'info', 'debug', 'warning', 'error', 'critical'])
     parser.add_argument(
         '-w', '--workdir', type=str, default='/local', help='writable directory for temporary files')

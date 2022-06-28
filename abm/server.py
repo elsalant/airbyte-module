@@ -4,9 +4,9 @@
 #
 
 from fybrik_python_logging import init_logger, logger, DataSetID, ForUser
-from .config import Config
-from .connector import GenericConnector
-from .ticket import ABMTicket
+from abm.config import Config
+from abm.connector import GenericConnector
+from abm.ticket import ABMTicket
 import http.server
 import json
 import os
@@ -28,6 +28,7 @@ class ABMHttpHandler(http.server.SimpleHTTPRequestHandler):
     return it to client.
     '''
     def do_GET(self):
+        logger.info('do_GET called')
         with Config(self.config_path) as config:
             asset_name = self.path.lstrip('/')
             try:
@@ -38,7 +39,6 @@ class ABMHttpHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_response(HTTPStatus.NOT_FOUND)
                 self.end_headers()
                 return
-
             batches = connector.get_dataset()
             if batches:
                 self.send_response(HTTPStatus.OK)
@@ -134,11 +134,9 @@ class ABMFlightServer(fl.FlightServerBase):
 
         with Config(self.config_path) as config:
             asset_conf = config.for_asset(ticket_info.asset_name)
-
         connector = GenericConnector(asset_conf, logger, self.workdir)
         # determine schema using the Airbyte 'discover' operation
         schema = connector.get_schema()
-
         # read dataset using the Airbyte 'read' operation
         batches = connector.get_dataset_batches(schema)
 
@@ -162,11 +160,9 @@ class ABMFlightServer(fl.FlightServerBase):
             # given the asset configuration, let us determine the schema
             connector = GenericConnector(asset_conf, logger, self.workdir)
             schema = connector.get_schema()
-
         locations = self._get_locations()
 
         tickets = [ABMTicket(asset_name)]
-
         endpoints = self._get_endpoints(tickets, locations)
         return fl.FlightInfo(schema, descriptor, endpoints, -1, -1)
 

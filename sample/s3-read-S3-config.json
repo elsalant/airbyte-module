@@ -1,21 +1,27 @@
 apiVersion: katalog.fybrik.io/v1alpha1
 kind: Asset
 metadata:
-  name: userdata
+  name: s3-userdata
+  namespace: fybrik-airbyte-sample
 spec:
   secretRef: 
     name: s3-credentials
   details:
-    dataFormat: csv
+    dataFormat: json
     connection:
-      name: file
-      file:
-        connector: "airbyte/source-file"
-        dataset_name: userdata
-        format: parquet
-        url: "https://github.com/Teradata/kylo/raw/master/samples/sample-data/parquet/userdata2.parquet"
+      name: s3
+      s3:
+        dataset: "test"
         provider:
-          storage: HTTPS
+          storage: "S3"
+          bucket: "safe-bucket"
+          path_prefix: ""
+          endpoint: "https://s3.eu.cloud-object-storage.appdomain.cloud"
+        format:
+          filetype: "csv"
+        path_pattern: "**"
+        schema: "{}"
+        connector: "airbyte/source-s3"
   metadata:
     name: test data
     geography: theshire 
