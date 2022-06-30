@@ -2,7 +2,7 @@ include Makefile.env
 
 DOCKER_HOSTNAME ?= ghcr.io
 DOCKER_NAMESPACE ?= fybrik
-DOCKER_TAG ?= 0.0.0
+DOCKER_TAG ?= 0.0.1
 DOCKER_NAME ?= airbyte-module
 DOCKER_CLIENT_NAME ?= airbyte-module-client
 

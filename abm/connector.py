@@ -7,6 +7,8 @@ import json
 import tempfile
 import pyarrow as pa
 from pyarrow import json as pa_json
+import yaml
+import time
 
 MOUNTDIR = '/local'
 CHUNKSIZE = 1024
@@ -14,39 +16,38 @@ CTRLD = '\x04'.encode()
 
 class GenericConnector:
     def __init__(self, config, logger, workdir):
+        self.logger = logger
         if 'connection' not in config:
             raise ValueError("'connection' field missing from configuration")
 
         if 'name' not in config['connection']:
             raise ValueError("the name of the connection is missing")
         connection_name = config['connection']['name'] # e.g. postgres, google-sheets, us-census
-
+        self.logger.debug('GenericConnector: connection_name = '+connection_name)
         self.config = config['connection'][connection_name]
+        self.logger.debug('GenericConnector: self.config = ' + str(self.config))
         if 'connector' not in self.config:
             raise ValueError("'connector' field missing from configuration")
 
         self.workdir = workdir
-    # Potentially the fybrik-blueprint pod for the airbyte module can start before the docker daemon pod, causing
-    # docker.from_env() to fail
+        # Potentially the fybrik-blueprint pod for the airbyte module can start before the docker daemon pod, causing
+        # docker.from_env() to fail
+
         retryLoop = 0
         while retryLoop < 10:
             try:
                 self.client = docker.from_env()
             except Exception as e:
-                print('error on docker.from_env() ' + str(e) + ' sleep and retry.  Retry count = ' + str(retryLoop))
+                self.logger.info('error on docker.from_env() ' + str(e) + ' sleep and retry.  Retry count = ' + str(retryLoop))
                 time.sleep(1)
                 retryLoop += 1
             else:
                 retryLoop = 10
-
         self.connector = self.config['connector']
-
         # The content of self.config will be written to a temporary json file,
         # and sent to the connector. First, we must remove the 'connector' entry,
         # since the Airbyte connectors do not recognize this field
         del self.config['connector']
-
-        self.logger = logger
 
         # if the port field is a string, cast it to integer
         if 'port' in self.config and type(self.config['port']) == str:
@@ -60,7 +61,8 @@ class GenericConnector:
         self.conf_file.flush()
 
     def __del__(self):
-        self.conf_file.close()
+        pass
+  #      self.conf_file.close()
 
     '''
     Translate the name of the temporary file in the host to the name of the same file
@@ -77,8 +79,14 @@ class GenericConnector:
     extract:
        {"id":1,"col1":"record1"}
     '''
+
     def extract_data(self, line_dict):
-        return json.dumps(line_dict['record']['data']).encode('utf-8')
+        data_dict = line_dict['record']['data']
+        new_dict = dict()
+        for item in data_dict:
+            if not item.startswith('_ab_'):
+                new_dict[item] = data_dict[item]
+        return json.dumps(new_dict).encode('utf-8')
 
     '''
     Filter out all irrelevant lines, such as log lines.
@@ -115,7 +123,7 @@ class GenericConnector:
     Mount the workdir on /local. Remove the container after done.
     '''
     def run_container(self, command):
-        self.logger.debug("running command: " + command)
+        self.logger.debug("run_container: running command: " + command)
         try:
             reply = self.client.containers.run(self.connector, command,
                 volumes=[self.workdir + ':' + MOUNTDIR], network_mode='host',
@@ -149,6 +157,10 @@ class GenericConnector:
     # Given configuration, obtain the Airbyte Catalog, which includes list of datasets
     def get_catalog(self):
         ret = []
+        try:
+            self.logger.debug("self.conf_file.name = " + self.conf_file.name)
+        except:
+            self.logger.debug("get_catalog - self.conf_file.name undefined")
         for lines in self.run_container('discover --config ' + self.name_in_container(self.conf_file.name)):
             ret = ret + lines
         return ret
@@ -171,9 +183,14 @@ class GenericConnector:
         schema = pa.schema({})
         properties = self.catalog_dict['catalog']['streams'][0]['json_schema']['properties']
         for field in properties:
+            if field.startswith('_ab_'):
+                continue
             type_field = properties[field]['type']
             if type(type_field) is list:
-                t = type_field[0]
+                for item in type_field:
+                    if item != 'null':
+                        t = item
+                        break
             else:
                 t = type_field
             schema = schema.append(pa.field(field, self.translate[t]))
@@ -218,7 +235,6 @@ class GenericConnector:
         # if self.catalog_dict is already populated, no need to do anything
         if self.catalog_dict:
             return
-
         airbyte_catalog = self.get_catalog()
 
         if not airbyte_catalog:
