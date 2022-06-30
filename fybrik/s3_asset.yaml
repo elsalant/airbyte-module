@@ -18,8 +18,8 @@ spec:
           path_prefix: ""
           endpoint: "https://s3.eu.cloud-object-storage.appdomain.cloud"
         format:
-          filetype: "csv"
-        path_pattern: "**"
+          filetype: "parquet"
+        path_pattern: "**/*.parquet"
         schema: "{}"
         connector: "airbyte/source-s3"
   metadata:

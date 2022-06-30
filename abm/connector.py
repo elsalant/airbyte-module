@@ -76,8 +76,14 @@ class GenericConnector:
     extract:
        {"id":1,"col1":"record1"}
     '''
+
     def extract_data(self, line_dict):
-        return json.dumps(line_dict['record']['data']).encode('utf-8')
+        data_dict = line_dict['record']['data']
+        new_dict = dict()
+        for item in data_dict:
+            if not item.startswith('_ab_'):
+                new_dict[item] = data_dict[item]
+        return json.dumps(new_dict).encode('utf-8')
 
     '''
     Filter out all irrelevant lines, such as log lines.
@@ -169,14 +175,19 @@ class GenericConnector:
     def get_schema(self):
         self.get_catalog_dict()
         if self.catalog_dict == None:
-            self.logger.info('get_schema: get_catalog_dict() is empty')
             return None
+
         schema = pa.schema({})
         properties = self.catalog_dict['catalog']['streams'][0]['json_schema']['properties']
         for field in properties:
+            if field.startswith('_ab_'):
+                continue
             type_field = properties[field]['type']
             if type(type_field) is list:
-                t = type_field[0]
+                for item in type_field:
+                    if item != 'null':
+                        t = item
+                        break
             else:
                 t = type_field
             schema = schema.append(pa.field(field, self.translate[t]))
