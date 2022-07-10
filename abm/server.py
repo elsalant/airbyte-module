@@ -7,12 +7,15 @@ from fybrik_python_logging import init_logger, logger, DataSetID, ForUser
 from abm.config import Config
 from abm.connector import GenericConnector
 from abm.ticket import ABMTicket
+from abm.jwt import decrypt_jwt
 import http.server
 import json
 import os
 import socketserver
 from http import HTTPStatus
 import pyarrow.flight as fl
+
+JWT_KEY = os.getenv("JWT_KEY") if os.getenv("JWT_KEY") else 'realm_access.roles'
 
 class ABMHttpHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, request, client_address, server):
@@ -29,6 +32,9 @@ class ABMHttpHandler(http.server.SimpleHTTPRequestHandler):
     '''
     def do_GET(self):
         logger.info('do_GET called')
+        # Extract key from JWT
+        jwtKeyValue = decrypt_jwt(self.headers.get('Authorization'), JWT_KEY)
+        logger.info('jwtKeyValue = ' + str(jwtKeyValue))
         with Config(self.config_path) as config:
             asset_name = self.path.lstrip('/')
             try:
@@ -53,6 +59,11 @@ class ABMHttpHandler(http.server.SimpleHTTPRequestHandler):
 # Have the same routine for PUT and POST
     def do_WRITE(self):
         logger.info('write requested')
+        # Extract key from JWT
+        jwtKeyValue = decrypt_jwt(self.headers.get('Authorization'), JWT_KEY)
+        logger.info('jwtKeyValue = ' + str(jwtKeyValue))
+        # Determine if the write is blocked by runtime policy
+
         with Config(self.config_path) as config:
             asset_name = self.path.lstrip('/')
             try:
@@ -63,7 +74,7 @@ class ABMHttpHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_response(HTTPStatus.NOT_FOUND)
                 self.end_headers()
                 return
-            # Change to allow for streaming reads
+            # Change to allow for chunking
             read_length = self.headers.get('Content-Length')
             if connector.write_dataset(self.rfile, int(read_length)):
                 self.send_response(HTTPStatus.OK)

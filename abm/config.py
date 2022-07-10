@@ -45,7 +45,7 @@ class Config:
                         asset_info['connection'][connection_name]['provider'].update(secretDict)
                     return asset_info
                 except Exception as e:
-                    raise ValueError('for_asset: error decoding secret' + str(e))
+                    raise ValueError('for_asset: error decoding secret ' + str(e))
         raise ValueError(
             "Requested config for undefined asset: {}".format(asset_name))
 

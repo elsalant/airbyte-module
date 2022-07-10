@@ -36,8 +36,9 @@ module reads the dataset, whereas the arrow-flight-module transforms the dataset
 # Change notes
 This version assumes that S3 secrets are stored in a Secrets CRD and not in Vault.  The keywords in the Secret CRD are those that the 
 airbyte source-s3 module expects.  If a different adaptor is used, the Secret CRD needs to be changed accordingly.
+The secret file for read is sample/eliot_s3_read_secret.yaml 
 
-All information for the Airbyte config file comes from the Asset CRD (s3_asset.yaml) in the "s3" section and will be copied as-is to 
+All information for the Airbyte config file comes from the Asset CRD (fybrik/s3_asset.yaml) in the "s3" section and will be copied as-is to 
 the Airbyte config file.
 
 To have this code work with a new connector, change the "connector" field in the asset yaml and the Airbyte config file key:values.  
@@ -45,3 +46,5 @@ If secrets are required, update the key:values in the Secrets file.
 
 Install the secrets file and the permissions.yaml file in addition to the regular installation notes for a Fybrik-based deployment.
 
+Test s3 read with:
+sample/runCurl.sh
