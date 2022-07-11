@@ -8,6 +8,7 @@ from abm.config import Config
 from abm.connector import GenericConnector
 from abm.ticket import ABMTicket
 from abm.jwt import decrypt_jwt
+from abm.opa_requests_utils import opa_get_actions
 import http.server
 import json
 import os
@@ -35,6 +36,12 @@ class ABMHttpHandler(http.server.SimpleHTTPRequestHandler):
         # Extract key from JWT
         jwtKeyValue = decrypt_jwt(self.headers.get('Authorization'), JWT_KEY)
         logger.info('jwtKeyValue = ' + str(jwtKeyValue))
+        # Call local OPA to get runtime policy evaluation
+        #TBD
+        action = opa_get_actions(jwtKeyValue, self.path)
+        if (action == 'Block'):
+            self.send_response(HTTPStatus.FORBIDDEN)
+            self.end_headers()
         with Config(self.config_path) as config:
             asset_name = self.path.lstrip('/')
             try:
@@ -63,7 +70,10 @@ class ABMHttpHandler(http.server.SimpleHTTPRequestHandler):
         jwtKeyValue = decrypt_jwt(self.headers.get('Authorization'), JWT_KEY)
         logger.info('jwtKeyValue = ' + str(jwtKeyValue))
         # Determine if the write is blocked by runtime policy
-
+        action = opa_get_actions(jwtKeyValue, self.path)
+        if (action == 'Block'):
+            self.send_response(HTTPStatus.FORBIDDEN)
+            self.end_headers()
         with Config(self.config_path) as config:
             asset_name = self.path.lstrip('/')
             try:

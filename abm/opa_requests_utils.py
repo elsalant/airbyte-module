@@ -11,15 +11,15 @@ from .OPAConfig import *
 
 logger = logging.getLogger(__name__)
 
-
-def opa_get_actions(role, query_url, passed_url):
+# get the runtime evaluation of the OPA policies based on role, and the asset (extracted from passed_url)
+def opa_get_actions(role, passed_url):
+    opaEndpt = OPAConfig.policy_endpoint
     # The assumption is that the if there are query parameters (query_string), then this is prefixed by a "?"
     parsed_url = urlparse.urlparse(passed_url)
     asset = parsed_url[1] + parsed_url[2]
 
     # If we have passed parameters, asset will end in a '/' which needs to be stripped off
-    asset = asset[:-1] if asset[-1] == '/' else asset
-
+    asset.strip('/')
     logger.debug(f"asset: {asset}")
     asset_name = asset.replace('/', '.').replace('_', '-')
 
@@ -28,7 +28,7 @@ def opa_get_actions(role, query_url, passed_url):
     opa_query_body = get_opa_query_body(asset_name, role)
 
     opa_url = get_opa_url()
-    url_string = opa_url + query_url
+    url_string = opa_url + opaEndpt
     header = {"Content-Type": "application/json"}
     logger.debug(f"url_string: {url_string} asset_name: {asset_name} opa_query_body: {opa_query_body}")
 
@@ -37,7 +37,6 @@ def opa_get_actions(role, query_url, passed_url):
     except:
         logger.error(f"could not connect to OPA for url: {url_string} data: {opa_query_body}")
         raise
-
     try:
         return_string = response.json()
     except Exception as e:
