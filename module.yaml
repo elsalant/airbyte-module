@@ -20,6 +20,10 @@ spec:
             protocol: s3
             dataformat: json
     - capability: read
+      actions:
+        - name: RedactColumn
+        - name: BlockResource
+        - name: AllowResource
       scope: workload 
       api:
         connection:

@@ -17,6 +17,7 @@ from http import HTTPStatus
 import pyarrow.flight as fl
 
 JWT_KEY = os.getenv("JWT_KEY") if os.getenv("JWT_KEY") else 'realm_access.roles'
+TEST = True
 
 class ABMHttpHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, request, client_address, server):
@@ -33,15 +34,13 @@ class ABMHttpHandler(http.server.SimpleHTTPRequestHandler):
     '''
     def do_GET(self):
         logger.info('do_GET called')
-        # Extract key from JWT
-        jwtKeyValue = decrypt_jwt(self.headers.get('Authorization'), JWT_KEY)
-        logger.info('jwtKeyValue = ' + str(jwtKeyValue))
-        # Call local OPA to get runtime policy evaluation
-        #TBD
-        action = opa_get_actions(jwtKeyValue, self.path)
-        if (action == 'Block'):
+        action = self.runtimeEval()
+        logger.info('action = ' + action)
+        if (action == 'BlockResource'):
             self.send_response(HTTPStatus.FORBIDDEN)
             self.end_headers()
+            self.wfile.write(b'Request blocked!')
+            return
         with Config(self.config_path) as config:
             asset_name = self.path.lstrip('/')
             try:
@@ -66,14 +65,12 @@ class ABMHttpHandler(http.server.SimpleHTTPRequestHandler):
 # Have the same routine for PUT and POST
     def do_WRITE(self):
         logger.info('write requested')
-        # Extract key from JWT
-        jwtKeyValue = decrypt_jwt(self.headers.get('Authorization'), JWT_KEY)
-        logger.info('jwtKeyValue = ' + str(jwtKeyValue))
-        # Determine if the write is blocked by runtime policy
-        action = opa_get_actions(jwtKeyValue, self.path)
-        if (action == 'Block'):
+        action = self.runtimeEval()
+        logger.info('action = ' + action)
+        if (action == 'BlockResource'):
             self.send_response(HTTPStatus.FORBIDDEN)
             self.end_headers()
+            return('Request blocked!')
         with Config(self.config_path) as config:
             asset_name = self.path.lstrip('/')
             try:
@@ -83,6 +80,7 @@ class ABMHttpHandler(http.server.SimpleHTTPRequestHandler):
                 logger.error('asset ' + asset_name + ' not found or malformed configuration')
                 self.send_response(HTTPStatus.NOT_FOUND)
                 self.end_headers()
+                self.wfile.write(b'Request blocked!')
                 return
             # Change to allow for chunking
             read_length = self.headers.get('Content-Length')
@@ -97,6 +95,24 @@ class ABMHttpHandler(http.server.SimpleHTTPRequestHandler):
 
     def do_POST(self):
         self.do_WRITE()
+
+
+    # runtimeEval() will get the role value from the JWT and the situationStatus from the
+    # environment variable (from a k8s configmap) and call out to OPA to reassess the policy in order to
+    # check if the endpoint is blocked.
+    def runtimeEval(self):
+        # Extract key from JWT
+        jwtKeyValue = decrypt_jwt(self.headers.get('Authorization'), JWT_KEY)
+        logger.info('jwtKeyValue = ' + str(jwtKeyValue))
+        # FogProtect: Get the value of the external set SITUATION_STATUS variable (mounted from a configmap)
+        situationStatus = os.getenv('SITUATION_STATUS')
+        if TEST:
+            situationStatus = 'unsafe-high'
+
+        # Call local OPA to get runtime policy evaluation
+        actionDict = opa_get_actions(jwtKeyValue, situationStatus, self.path)
+        action = actionDict['result']['rule'][0]['action']
+        return(action)
 
 class ABMHttpServer(socketserver.TCPServer):
     def __init__(self, server_address, RequestHandlerClass,

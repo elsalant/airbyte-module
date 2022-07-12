@@ -12,7 +12,7 @@ from .OPAConfig import *
 logger = logging.getLogger(__name__)
 
 # get the runtime evaluation of the OPA policies based on role, and the asset (extracted from passed_url)
-def opa_get_actions(role, passed_url):
+def opa_get_actions(role, situationStatus, passed_url):
     opaEndpt = OPAConfig.policy_endpoint
     # The assumption is that the if there are query parameters (query_string), then this is prefixed by a "?"
     parsed_url = urlparse.urlparse(passed_url)
@@ -25,7 +25,7 @@ def opa_get_actions(role, passed_url):
 
     # TODO: role is being put into the header as a string - it should go in as a list for Rego.  What we are doing
     #  now requires the Rego to do a substring search, rather than search in a list
-    opa_query_body = get_opa_query_body(asset_name, role)
+    opa_query_body = get_opa_query_body(asset_name, role, situationStatus)
 
     opa_url = get_opa_url()
     url_string = opa_url + opaEndpt
@@ -107,8 +107,9 @@ def get_opa_url():
     return 'http://' + OPAConfig.address + ":" + str(OPAConfig.port)
 
 
-def get_opa_query_body(asset_name, role):
+def get_opa_query_body(asset_name, role, situationStatus):
     return '{ \"input\": { \
+            \"situationStatus\": \"' + situationStatus + '\", \
             \"request\": { \
             \"operation\": \"READ\", \
             \"role\": \"' + str(role) + '\", \

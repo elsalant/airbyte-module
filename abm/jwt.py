@@ -29,5 +29,7 @@ def decrypt_jwt(encrypted_token, keyofInterest):
             if (type(decoded_jwt) is dict):
                 continue
             else:
+                if type(decoded_key) is list:
+                    decoded_key = decoded_key[0]
                 return decoded_key
     return decoded_key
