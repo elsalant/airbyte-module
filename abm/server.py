@@ -17,7 +17,7 @@ from http import HTTPStatus
 import pyarrow.flight as fl
 
 JWT_KEY = os.getenv("JWT_KEY") if os.getenv("JWT_KEY") else 'realm_access.roles'
-TEST = True
+TEST = False
 
 class ABMHttpHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, request, client_address, server):
