@@ -5,6 +5,7 @@ DOCKER_NAMESPACE ?= fybrik
 DOCKER_TAG ?= 0.0.1
 DOCKER_NAME ?= airbyte-module
 DOCKER_CLIENT_NAME ?= airbyte-module-client
+KIND_CLUSTER ?= sm-read
 
 IMG := ${DOCKER_HOSTNAME}/${DOCKER_NAMESPACE}/${DOCKER_NAME}:${DOCKER_TAG}
 CLIENT_IMG := ${DOCKER_HOSTNAME}/${DOCKER_NAMESPACE}/${DOCKER_CLIENT_NAME}:${DOCKER_TAG}
@@ -32,7 +33,11 @@ docker-push:
 
 .PHONY: push-to-kind
 push-to-kind:
-	kind load docker-image ${IMG}
+	kind load docker-image ${IMG} --name $(KIND_CLUSTER)
+
+.PHONY: helm-package
+	helm package helm/abm -d tmp
+	helm push /tmp/airbyte-module-chart-0.0.0-els.tgz oci://ghcr.io/elsalant
 
 include hack/make-rules/helm.mk
 include hack/make-rules/tools.mk

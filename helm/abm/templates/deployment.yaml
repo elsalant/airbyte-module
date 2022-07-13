@@ -48,6 +48,14 @@ spec:
               mountPath: /var/run
             - name: json-dir
               mountPath: /local
+          env:
+            # Define the environment variable to set the situational status
+            - name: SITUATION_STATUS
+              # from the key name in the ConfigMap.
+              valueFrom:
+                configMapKeyRef:
+                  name: situationstatus        # The ConfigMap this value comes from.
+                  key: situation-status # The key to fetch.
         - name: docker-daemon
           image: docker:20.10.7-dind
           securityContext:
@@ -57,14 +65,6 @@ spec:
               mountPath: /var/run
             - name: json-dir
               mountPath: /local
-         env:
-            # Define the environment variable to set the situational status
-            - name: SITUATION_STATUS
-              # from the key name in the ConfigMap.
-              valueFrom:
-                configMapKeyRef:
-                  name: situationstatus        # The ConfigMap this value comes from.
-                  key: situation-status # The key to fetch.
       volumes:
         - name: config
           configMap:

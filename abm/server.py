@@ -105,10 +105,10 @@ class ABMHttpHandler(http.server.SimpleHTTPRequestHandler):
         jwtKeyValue = decrypt_jwt(self.headers.get('Authorization'), JWT_KEY)
         logger.info('jwtKeyValue = ' + str(jwtKeyValue))
         # FogProtect: Get the value of the external set SITUATION_STATUS variable (mounted from a configmap)
-        situationStatus = os.getenv('SITUATION_STATUS')
+        situationStatus = os.getenv('SITUATION_STATUS') if os.getenv('SITUATION_STATUS') else 'ERROR - SITUATION_STATUS UNDEFINED'
         if TEST:
             situationStatus = 'unsafe-high'
-
+        logger.info('situationStatus = ' + situationStatus)
         # Call local OPA to get runtime policy evaluation
         actionDict = opa_get_actions(jwtKeyValue, situationStatus, self.path)
         action = actionDict['result']['rule'][0]['action']

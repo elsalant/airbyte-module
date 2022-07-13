@@ -7,4 +7,8 @@ rule[{"name": "Only allow administrator access to unsafe assets", "action": "Blo
        input.request.role != "Admin"
 }
 
+rule[{}] {
+  input.action.actionType == "read"
+}
+
 

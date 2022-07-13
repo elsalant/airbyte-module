@@ -46,5 +46,11 @@ If secrets are required, update the key:values in the Secrets file.
 
 Install the secrets file and the permissions.yaml file in addition to the regular installation notes for a Fybrik-based deployment.
 
+Install the situationStatus yaml: fybrik/situation-status.yaml
+
+
 Test s3 read with:
-sample/runCurl.sh
+1. Port-forward the service:
+kubectl port-forward service/my-app-fybrik-airbyte-sample-airbyte-module 2020:79 -n fybrik-blueprints
+2. Send a curl command with a JWT:
+sample/runCurlJWT_k8s.sh

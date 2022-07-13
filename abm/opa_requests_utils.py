@@ -20,7 +20,7 @@ def opa_get_actions(role, situationStatus, passed_url):
 
     # If we have passed parameters, asset will end in a '/' which needs to be stripped off
     asset.strip('/')
-    logger.debug(f"asset: {asset}")
+    logger.debug(f"stripped asset: {asset}")
     asset_name = asset.replace('/', '.').replace('_', '-')
 
     # TODO: role is being put into the header as a string - it should go in as a list for Rego.  What we are doing

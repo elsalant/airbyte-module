@@ -9,7 +9,8 @@ class OPAConfig:
     port = 8181
 
     # the address of the OPA server
-    address = 'localhost'
+  #  address = 'localhost'
+    address = 'opa.fybrik-system'
 
     # the endpoint to send to in order to get the list of filters from the OPA server
     policy_endpoint = '/v1/data/dataapi/authz'
