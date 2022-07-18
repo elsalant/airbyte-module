@@ -36,7 +36,8 @@ push-to-kind:
 	kind load docker-image ${IMG} --name $(KIND_CLUSTER)
 
 .PHONY: helm-package
-	helm package helm/abm -d tmp
+helm-package:
+	helm package helm/abm -d /tmp
 	helm push /tmp/airbyte-module-chart-0.0.0-els.tgz oci://ghcr.io/elsalant
 
 include hack/make-rules/helm.mk
