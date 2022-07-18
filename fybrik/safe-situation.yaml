@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: situationstatus
+  namespace: fybrik-blueprints
+data:
+  situation-status: safe

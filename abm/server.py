@@ -35,7 +35,7 @@ class ABMHttpHandler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
         logger.info('do_GET called')
         action = self.runtimeEval()
-        logger.info('action = ' + action)
+        logger.info('do_GET: action = ' + action)
         if (action == 'BlockResource'):
             self.send_response(HTTPStatus.FORBIDDEN)
             self.end_headers()
@@ -43,6 +43,7 @@ class ABMHttpHandler(http.server.SimpleHTTPRequestHandler):
             return
         with Config(self.config_path) as config:
             asset_name = self.path.lstrip('/')
+            logger.debug('do_GET: asset_name = ' + asset_name)
             try:
                 asset_conf = config.for_asset(asset_name)
                 connector = GenericConnector(asset_conf, logger, self.workdir)
@@ -62,11 +63,12 @@ class ABMHttpHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_response(HTTPStatus.BAD_REQUEST)
                 self.end_headers()
 
+
 # Have the same routine for PUT and POST
     def do_WRITE(self):
         logger.info('write requested')
         action = self.runtimeEval()
-        logger.info('action = ' + action)
+        logger.info('do_WRITE: action = ' + action)
         if (action == 'BlockResource'):
             self.send_response(HTTPStatus.FORBIDDEN)
             self.end_headers()
@@ -96,7 +98,6 @@ class ABMHttpHandler(http.server.SimpleHTTPRequestHandler):
     def do_POST(self):
         self.do_WRITE()
 
-
     # runtimeEval() will get the role value from the JWT and the situationStatus from the
     # environment variable (from a k8s configmap) and call out to OPA to reassess the policy in order to
     # check if the endpoint is blocked.
@@ -109,9 +110,12 @@ class ABMHttpHandler(http.server.SimpleHTTPRequestHandler):
         if TEST:
             situationStatus = 'unsafe-high'
         logger.info('situationStatus = ' + situationStatus)
-        # Call local OPA to get runtime policy evaluation
+        # Call OPA to get runtime policy evaluation
         actionDict = opa_get_actions(jwtKeyValue, situationStatus, self.path)
-        action = actionDict['result']['rule'][0]['action']
+        try:
+            action = actionDict['result']['rule'][0]['action']
+        except:   # no matching rule
+            return("")
         return(action)
 
 class ABMHttpServer(socketserver.TCPServer):

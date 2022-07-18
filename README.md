@@ -47,7 +47,7 @@ If secrets are required, update the key:values in the Secrets file.
 Install the secrets file and the permissions.yaml file in addition to the regular installation notes for a Fybrik-based deployment.
 
 Install the situationStatus yaml: fybrik/situation-status.yaml
-
+Run installPolicy.sh to apply policy
 
 Test s3 read with:
 1. Port-forward the service:
