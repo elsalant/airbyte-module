@@ -130,6 +130,7 @@ class GenericConnector:
                 remove=True, stream=True)
             return self.filter_reply(reply)
         except docker.errors.DockerException as e:
+            print(e)
             self.logger.error('Running of docker container failed',
                               extra={'error': str(e)})
             return None
@@ -161,6 +162,11 @@ class GenericConnector:
             self.logger.debug("self.conf_file.name = " + self.conf_file.name)
         except:
             self.logger.debug("get_catalog - self.conf_file.name undefined")
+        print('contents of tempfile ' + self.name_in_container(self.conf_file.name))
+        f = open(self.name_in_container(self.conf_file.name), 'r')
+        content = f.read()
+        print(content)
+        f.close()
         for lines in self.run_container('discover --config ' + self.name_in_container(self.conf_file.name)):
             ret = ret + lines
         return ret
@@ -222,6 +228,16 @@ class GenericConnector:
         catalog_file.flush()
 
         # step 3: Run the Airbyte read operation to read the datasets
+        print('--- About to execute read.  Config file contents:')
+        f = open(self.name_in_container(self.conf_file.name), 'r')
+        content = f.read()
+        print(content)
+        f.close()
+        print('------ catalog contents ')
+        f = open(self.name_in_container(catalog_file.name), 'r')
+        content = f.read()
+        print(content)
+        f.close()
         return self.run_container('read --config '
                       + self.name_in_container(self.conf_file.name)
                       + ' --catalog '

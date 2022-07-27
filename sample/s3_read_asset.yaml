@@ -14,7 +14,7 @@ spec:
         dataset: "test"
         provider:
           storage: "S3"
-          bucket: "safe-bucket"
+          bucket: "smartmanufacturing-safe-bucket"
           path_prefix: ""
           endpoint: "https://s3.eu.cloud-object-storage.appdomain.cloud"
         format:
