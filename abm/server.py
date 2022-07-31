@@ -121,8 +121,6 @@ class ABMHttpHandler(http.server.SimpleHTTPRequestHandler):
             if 'action' in dictLists[i]:
                 actionIndex = i
                 break
-        if actionIndex == -1:
-            raise ValueError('Error - no "action" found in policy return')
         try:
             action = actionDict['result']['rule'][actionIndex]['action']
         except:   # no matching rule
