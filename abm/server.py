@@ -114,10 +114,20 @@ class ABMHttpHandler(http.server.SimpleHTTPRequestHandler):
         logger.info('situationStatus = ' + situationStatus)
         # Call OPA to get runtime policy evaluation
         actionDict = opa_get_actions(jwtKeyValue, situationStatus, self.path)
+        # The Policy Mgr creates a list of dictionaries with the return action.  Get the dictionary that contains 'action'
+        dictLists = actionDict['result']['rule']
+        actionIndex = -1
+        for i in range(len(dictLists)):
+            if 'action' in dictLists[i]:
+                actionIndex = i
+                break
+        if actionIndex == -1:
+            raise ValueError('Error - no "action" found in policy return')
         try:
-            action = actionDict['result']['rule'][0]['action']
+            action = actionDict['result']['rule'][actionIndex]['action']
         except:   # no matching rule
-            return("")
+            return("NO POLICY ACTIONS")
+            actionDict.items()
         return(action)
 
 def getSituationStatus():
