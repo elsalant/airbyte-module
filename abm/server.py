@@ -15,6 +15,7 @@ import os
 import socketserver
 from http import HTTPStatus
 import pyarrow.flight as fl
+import yaml
 
 JWT_KEY = os.getenv("JWT_KEY") if os.getenv("JWT_KEY") else 'realm_access.roles'
 TEST = False
