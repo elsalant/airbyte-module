@@ -18,6 +18,8 @@ import pyarrow.flight as fl
 
 JWT_KEY = os.getenv("JWT_KEY") if os.getenv("JWT_KEY") else 'realm_access.roles'
 TEST = False
+CM_SITUATION_PATH = '/etc/confmap/situationstatus.yaml'
+TESTING_SITUATION_STATUS = 'safe'
 
 class ABMHttpHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, request, client_address, server):
@@ -106,9 +108,8 @@ class ABMHttpHandler(http.server.SimpleHTTPRequestHandler):
         jwtKeyValue = decrypt_jwt(self.headers.get('Authorization'), JWT_KEY)
         logger.info('jwtKeyValue = ' + str(jwtKeyValue))
         # FogProtect: Get the value of the external set SITUATION_STATUS variable (mounted from a configmap)
-        situationStatus = os.getenv('SITUATION_STATUS') if os.getenv('SITUATION_STATUS') else 'ERROR - SITUATION_STATUS UNDEFINED'
-        if TEST:
-            situationStatus = 'unsafe-high'
+ #       situationStatus = os.getenv('SITUATION_STATUS') if os.getenv('SITUATION_STATUS') else 'ERROR - SITUATION_STATUS UNDEFINED'
+        situationStatus = getSituationStatus()
         logger.info('situationStatus = ' + situationStatus)
         # Call OPA to get runtime policy evaluation
         actionDict = opa_get_actions(jwtKeyValue, situationStatus, self.path)
@@ -117,6 +118,20 @@ class ABMHttpHandler(http.server.SimpleHTTPRequestHandler):
         except:   # no matching rule
             return("")
         return(action)
+
+def getSituationStatus():
+    if not TEST:
+        try:
+            with open(CM_SITUATION_PATH, 'r') as stream:
+                cmReturn = yaml.safe_load(stream)
+                situationStatus = cmReturn['situation-status']
+        except Exception as e:
+            errorStr = 'Error reading from file! ' + CM_SITUATION_PATH
+            raise ValueError(errorStr)
+    else:
+        situationStatus = TESTING_SITUATION_STATUS
+    logger.info('situationStatus being returned as ' + situationStatus)
+    return situationStatus
 
 class ABMHttpServer(socketserver.TCPServer):
     def __init__(self, server_address, RequestHandlerClass,

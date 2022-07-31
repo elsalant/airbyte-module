@@ -5,9 +5,9 @@
 replicaCount: 1
 
 image:
-  repository: ghcr.io/fybrik/airbyte-module
+  repository: ghcr.io/elsalant/airbyte-module
   tag: main
-  pullPolicy: Never
+  pullPolicy: Always
   pullSecret: null
 
 nameOverride: ""
@@ -20,7 +20,7 @@ service:
 # OPA sidecar component
 opaSidecar:
   # Set to true to deploy OPA sidecar or false to skip its deployment.
-  enabled: true
+  enabled: false
 
   # Image name or a hub/image[:tag]
   opa:
