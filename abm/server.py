@@ -9,6 +9,7 @@ from abm.connector import GenericConnector
 from abm.ticket import ABMTicket
 from abm.jwt import decrypt_jwt
 from abm.opa_requests_utils import opa_get_actions
+from abm.kafka_utils import logToKafka
 import http.server
 import json
 import os
@@ -18,7 +19,7 @@ import pyarrow.flight as fl
 import yaml
 
 JWT_KEY = os.getenv("JWT_KEY") if os.getenv("JWT_KEY") else 'realm_access.roles'
-TEST = False
+TEST = True
 CM_SITUATION_PATH = '/etc/confmap/situationstatus.yaml'
 TESTING_SITUATION_STATUS = 'safe'
 
@@ -37,12 +38,13 @@ class ABMHttpHandler(http.server.SimpleHTTPRequestHandler):
     '''
     def do_GET(self):
         logger.info('do_GET called')
-        action = self.runtimeEval()
+        action, policy = self.runtimeEval()
         logger.info('do_GET: action = ' + action)
         if (action == 'BlockResource'):
             self.send_response(HTTPStatus.FORBIDDEN)
             self.end_headers()
             self.wfile.write(b'Request blocked!')
+            logToKafka(self, 'BlockURL', policy, self.headers.get('Host'))
             return
         with Config(self.config_path) as config:
             asset_name = self.path.lstrip('/')
@@ -64,17 +66,19 @@ class ABMHttpHandler(http.server.SimpleHTTPRequestHandler):
                         self.wfile.write(line + b'\n')
             else:
                 self.send_response(HTTPStatus.BAD_REQUEST)
-                self.end_headers()
+                self.end_headers
+        logToKafka(self, 'AllowURL', policy, self.headers.get('Host'))
 
 
 # Have the same routine for PUT and POST
     def do_WRITE(self):
         logger.info('write requested')
-        action = self.runtimeEval()
+        action, policy = self.runtimeEval()
         logger.info('do_WRITE: action = ' + action)
         if (action == 'BlockResource'):
             self.send_response(HTTPStatus.FORBIDDEN)
             self.end_headers()
+            logToKafka(self, 'BlockURL', policy, self.headers.get('Host'))
             return('Request blocked!')
         with Config(self.config_path) as config:
             asset_name = self.path.lstrip('/')
@@ -94,6 +98,7 @@ class ABMHttpHandler(http.server.SimpleHTTPRequestHandler):
             else:
                 self.send_response(HTTPStatus.BAD_REQUEST)
             self.end_headers()
+        logToKafka(self, 'AllowURL', policy, self.headers.get('Host'))
 
     def do_PUT(self):
         self.do_WRITE()
@@ -117,16 +122,19 @@ class ABMHttpHandler(http.server.SimpleHTTPRequestHandler):
         # The Policy Mgr creates a list of dictionaries with the return action.  Get the dictionary that contains 'action'
         dictLists = actionDict['result']['rule']
         actionIndex = -1
+        matchingPolicy =''
         for i in range(len(dictLists)):
             if 'action' in dictLists[i]:
                 actionIndex = i
+                matchingPolicy = dictLists[i]
                 break
         try:
             action = actionDict['result']['rule'][actionIndex]['action']
         except:   # no matching rule
-            return("NO POLICY ACTIONS")
-            actionDict.items()
-        return(action)
+            action = 'NO POLICY ACTION'
+#For FogProtect - log to Kafka
+
+        return(action, matchingPolicy)
 
 def getSituationStatus():
     if not TEST:
